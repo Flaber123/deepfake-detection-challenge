@@ -13,4 +13,5 @@ Collection of resources and code for the Deepfake Detection Challenge hosted on 
 - EfficientNet: https://github.com/mingxingtan/efficientnet
 
 ### Validation
-- Yifan Xie (29th in this Competition): "I have done some local experiment with both validation by group, and validation by original videos. My observation is that the gap between training and validation error is a lot wider when validating by original videos. For me that is a clear indication of overfitting. As pointed out by @liuftvafas, we do have the same actor in different groups. nevertheless, base on the above evidence I would go with validation by groups until better idea is shared :)" https://www.kaggle.com/c/deepfake-detection-challenge/discussion/124127
+- Group fold split by folder: https://www.kaggle.com/c/deepfake-detection-challenge/discussion/124127
+- Undersampling FAKE, oversampling REAL: 
