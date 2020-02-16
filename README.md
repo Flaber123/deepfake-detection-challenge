@@ -7,6 +7,9 @@ Collection of resources and code for the Deepfake Detection Challenge hosted on 
 ### Face recognition
 - Pretrained Pytorch face detection (MTCNN) and recognition (InceptionResnet) models: https://github.com/timesler/facenet-pytorch
 
+### Pre-processing
+- Subtracting pixel mean from each image
+
 ### Methods to try out
 - Unmasking with simple features: https://github.com/cc-hpc-itwm/DeepFakeDetection
 - MesoNet: https://github.com/DariusAf/MesoNet
