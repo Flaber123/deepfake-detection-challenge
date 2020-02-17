@@ -1,6 +1,17 @@
 import os
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
+
+
+def display_img(video_path, num_frames):
+    cap = cv2.VideoCapture(video_path)
+    ret, frame = cap.read()
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot(111)
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    ax.imshow(frame)
+    plt.show()
 
 
 class VideoReader:
@@ -36,7 +47,8 @@ class VideoReader:
 
         capture = cv2.VideoCapture(path)
         frame_count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
-        if frame_count <= 0: return None
+        if frame_count <= 0:
+            return None
 
         frame_idxs = np.linspace(0, frame_count - 1, num_frames, endpoint=True, dtype=np.int)
         if jitter > 0:
@@ -61,7 +73,8 @@ class VideoReader:
 
         capture = cv2.VideoCapture(path)
         frame_count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
-        if frame_count <= 0: return None
+        if frame_count <= 0:
+            return None
 
         frame_idxs = sorted(np.random.choice(np.arange(0, frame_count), num_frames))
         result = self._read_frames_at_indices(path, capture, frame_idxs)
@@ -124,6 +137,7 @@ class VideoReader:
             if self.verbose:
                 print("No frames read from movie %s" % path)
             return None
+
         except:
             if self.verbose:
                 print("Exception while reading movie %s" % path)

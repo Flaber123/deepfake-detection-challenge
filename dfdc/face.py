@@ -64,7 +64,8 @@ class FaceExtractor:
             result = self.video_read_fn(video_path)
 
             # Error? Then skip this video.
-            if result is None: continue
+            if result is None:
+                continue
 
             videos_read.append(video_idx)
 
