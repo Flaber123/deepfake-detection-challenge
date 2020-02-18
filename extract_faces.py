@@ -1,5 +1,6 @@
 import os
 import cv2
+import time
 import torch
 import numpy as np
 import pandas as pd
@@ -12,6 +13,7 @@ from facenet_pytorch import MTCNN, InceptionResnetV1
 from dfdc.video import VideoReader
 from dfdc.image import isotropically_resize_image, make_square_image
 
+# set paths
 data_path = Path('D:/Data/deepfake-detection-challenge')
 train_path = data_path / 'dfdc_train_all'
 train_dirs = os.listdir(train_path)
@@ -29,26 +31,29 @@ def save_image(data, filename):
     plt.close()
 
 
-num_frames = 10
-input_size = 224
+# set settings
+verbose = False
+num_frames = 25
+input_size = 300
 video_reader = VideoReader()
-
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-mtcnn = MTCNN(image_size=160,
-              margin=0,
+mtcnn = MTCNN(image_size=300,
+              margin=70,
               min_face_size=20,
               thresholds=[0.6, 0.7, 0.7],
               factor=0.709,
-              post_process=True,
-              select_largest=True,
+              post_process=False,
+              select_largest=False,
               keep_all=False,
               device=device)
 print('Running on device: {}'.format(device))
 
+# TODO: Implement dataframe with names, paths, labels, and probabilities
+
 for chunk in train_dirs[:1]:
+    start_chunk = time.time()
     input_dir = train_path / chunk
     output_dir = data_path / 'processed' / chunk
-
     labels = pd.read_json(str(input_dir / 'metadata.json'))
 
     if not os.path.exists(output_dir):
@@ -58,64 +63,53 @@ for chunk in train_dirs[:1]:
     videos = [f for f in os.listdir(input_dir) if (os.path.isfile(os.path.join(input_dir, f))) and (f.endswith('.mp4'))]
     num_videos = len(videos)
 
-    for video in videos[:10]:
+    for video, video_idx in zip(videos, range(1, num_videos + 1)):
+        # capture video
+        start_video = time.time()
         video_path = input_dir / video
-        # frames, idx = video_reader.read_frames(path=str(video_path), num_frames=num_frames)
-
-        # Loop through video, taking a handful of frames to form a batch
-        v_cap = cv2.VideoCapture(str(video_path))
-        v_len = int(v_cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        video_label = labels[video].iloc[0]
+        video_capture = cv2.VideoCapture(str(video_path))
+        frame_count = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
+        frame_indices = np.linspace(0, frame_count - 1, num_frames, endpoint=True, dtype=np.int)
+        valid_indices = []
         frames = []
 
-        for i in range(v_len):
-            success = v_cap.grab()  # load frame
-            if i % 50 == 0:
-                success, frame = v_cap.retrieve()
+        # loop trough videos and get frames
+        for frame_idx in range(frame_count):
+            grab = video_capture.grab()  # load frame
+            if not grab:
+                print('Error grabbing frame {}} from video {}'.format(frame_idx, video_path))
+                break  # stop processing video
+
+            if frame_idx in frame_indices:
+                retrieve, frame = video_capture.retrieve()
+                if (not retrieve) or (frame is None):
+                    print('Error retrieving frame {}} from video {}'.format(frame_idx, video_path))
+                    break
+                else:
+                    valid_indices.append(frame_idx)
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    frames.append(Image.fromarray(frame))
+
+        # detect faces in batch
+        # TODO: Batch saving to file: https://www.kaggle.com/timesler/guide-to-mtcnn-in-facenet-pytorch
+        faces = mtcnn(frames)
+
+        # save face images
+        for face, frame_idx in zip(faces, frame_indices):
+            if face is not None:
+                output_file = video.rstrip('.mp4') + '_{}_{}.png'.format(str(frame_idx).zfill(3), video_label)
+                output_file = output_dir / output_file
+                save_image(face.permute(1, 2, 0).int().numpy(), output_file)
+                if verbose:
+                    print('Saved face in frame {} of video: {}'.format(frame_idx, video))
             else:
                 continue
 
-            if not success:
-                continue
+        # finish of video
+        end_video = round(time.time() - start_video, 1)
+        print('Finished video {} of {} in {}s'.format(video_idx, num_videos, end_video))
 
-            # add to batch
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frames.append(Image.fromarray(frame))
-
-        # Detect faces in batch
-        faces = mtcnn(frames)
-
-        for i in range(len(faces)):
-            # plt.figure(figsize=(1,1))
-            # plt.imshow(face.permute(1, 2, 0).int().numpy())
-            # plt.axis('off')
-            # plt.show()
-
-            output_file = video.rstrip('.mp4') + '_{}.png'.format(str(i).zfill(2))
-            output_file = output_dir / output_file
-
-            face = faces[i]
-            save_image(face.permute(1, 2, 0).int().numpy(), output_file)
-
-        # for frame, index in zip(frames[:1], idx[:1]):
-        #     # detect face
-        #     face = mtcnn(frame)
-        #     face = face.permute(1, 2, 0).int().numpy()  # reshape tensor
-        #
-        #     # visualize face
-        #     if face is not None:
-        #         output_file = video.rstrip('.mp4') + '_{}.png'.format(str(index).zfill(2))
-        #         output_file = output_dir / output_file
-        #
-        #         img = Image.fromarray(face)
-        #         img.save(output_file)
-        #         # img.show()
-        #
-        #         # plt.imshow(face)
-        #         # plt.axis('off')
-        #         # plt.savefig(str(output_file))
-        #         # plt.show()
-        #         # plt.close()
-        #         print('Saved face for frame {} of {}'.format(index, video))
-        #
-        #     else:
-        #         print('Did not find a face for video: {}'.format(video))
+    # finish of chunk
+    end_chunk = round(time.time() - start_chunk, 1)
+    print('\n', 'Finished chunk {} of {} in {}s'.format(1, 50, end_chunk), '\n')
