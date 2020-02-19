@@ -32,13 +32,16 @@ def save_image(data, filename):
 
 
 # set settings
+# B1: image_size=240, margin=40
+# B3: image_size=300, margin=70
 verbose = False
-num_frames = 25
-input_size = 300
+fake_frames = 2
+real_frames = 5
+input_size = 240
 video_reader = VideoReader()
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-mtcnn = MTCNN(image_size=300,
-              margin=70,
+mtcnn = MTCNN(image_size=240,
+              margin=80,
               min_face_size=20,
               thresholds=[0.6, 0.7, 0.7],
               factor=0.709,
@@ -49,11 +52,12 @@ mtcnn = MTCNN(image_size=300,
 print('Running on device: {}'.format(device))
 
 # TODO: Implement dataframe with names, paths, labels, and probabilities
+metadata = pd.DataFrame(columns=['video', 'chunk', 'path', 'frame', 'label'])
 
 for chunk in train_dirs[:1]:
     start_chunk = time.time()
     input_dir = train_path / chunk
-    output_dir = data_path / 'processed' / chunk
+    output_dir = data_path / 'dfdc_processed' / chunk
     labels = pd.read_json(str(input_dir / 'metadata.json'))
 
     if not os.path.exists(output_dir):
@@ -67,10 +71,19 @@ for chunk in train_dirs[:1]:
         # capture video
         start_video = time.time()
         video_path = input_dir / video
-        video_label = labels[video].iloc[0]
         video_capture = cv2.VideoCapture(str(video_path))
         frame_count = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        video_label = labels[video].iloc[0]
+        if video_label == 'FAKE':
+            num_frames = fake_frames + 2  # subtract first and last frame afterwards
+        elif video_label == 'REAL':
+            num_frames = real_frames + 2  # subtract first and last frame afterwards
+        else:
+            raise ValueError
+
         frame_indices = np.linspace(0, frame_count - 1, num_frames, endpoint=True, dtype=np.int)
+        frame_indices = frame_indices[1: -1]
         valid_indices = []
         frames = []
 
