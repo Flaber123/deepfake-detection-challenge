@@ -1,21 +1,21 @@
 # Deepfake Detection Challenge
 Collection of resources and code for the Deepfake Detection Challenge hosted on Kaggle.
 
-### Dataset
+#### Dataset
 - The Deepfake Detection Challenge (DFDC) Preview Dataset: https://arxiv.org/abs/1910.08854
 
-### Face recognition
+#### Face recognition
 - Pretrained Pytorch face detection (MTCNN) and recognition (InceptionResnet) models: https://github.com/timesler/facenet-pytorch
 
-### Pre-processing
+#### Pre-processing
 - Subtracting pixel mean from each image
 
-### Methods to try out
+#### Methods to try out
 - Unmasking with simple features: https://github.com/cc-hpc-itwm/DeepFakeDetection
 - MesoNet: https://github.com/DariusAf/MesoNet
 - EfficientNet: https://github.com/mingxingtan/efficientnet
 
-### Validation
+#### Validation
 - Group fold split by folder: https://www.kaggle.com/c/deepfake-detection-challenge/discussion/124127
 - Undersampling FAKE, oversampling REAL: 
 
